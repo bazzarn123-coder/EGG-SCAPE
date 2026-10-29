@@ -1,0 +1,609 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Egg-scape: Fried Egg vs. Chickens</title>
+    <!-- Tailwind CSS for modern UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            color: #fff;
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+            padding-top: env(safe-area-inset-top, 20px);
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            max-height: 640px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            border-radius: 20px;
+            overflow: hidden;
+            background: #fdfbf7;
+            border: 4px solid #f59e0b;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .overlay-screen {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.94);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 20;
+            transition: opacity 0.3s ease;
+        }
+        .overlay-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+            display: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            font-weight: bold;
+            padding: 12px 28px;
+            border-radius: 9999px;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 1.1rem;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6);
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            font-weight: 600;
+            padding: 10px 24px;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+        .theme-btn {
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .theme-btn.active {
+            border-color: #f59e0b;
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- In-game Pause/Menu HUD Button -->
+        <button id="pause-btn" onclick="togglePause()" class="absolute top-3 left-1/2 -translate-x-1/2 bg-slate-900/70 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl border border-slate-700 shadow-lg z-10 hidden flex items-center justify-center text-xs font-bold gap-1 shadow-md">⚙️ Menu</button>
+
+        <!-- Canvas for Game Rendering -->
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+        <!-- Start Menu / Splash Screen -->
+        <div id="menu-screen" class="overlay-screen">
+            <div class="text-5xl mb-2 animate-bounce">🍳</div>
+            <h1 class="text-3xl font-black text-amber-400 tracking-wider mb-1 text-center">EGG-SCAPE</h1>
+            <p class="text-slate-300 text-sm mb-5 text-center">Fried Egg vs. Chickens</p>
+
+            <!-- Theme Selector -->
+            <div class="w-full mb-5 bg-slate-800/80 p-3 rounded-xl border border-slate-700">
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 text-center">Choose Theme</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="setTheme('kitchen')" id="theme-kitchen" class="theme-btn active bg-slate-700 hover:bg-slate-600 p-2 rounded-lg text-xs font-medium text-amber-200 flex flex-col items-center">
+                        <span class="text-base mb-1">🏠</span>Kitchen
+                    </button>
+                    <button onclick="setTheme('neon')" id="theme-neon" class="theme-btn bg-slate-700 hover:bg-slate-600 p-2 rounded-lg text-xs font-medium text-cyan-300 flex flex-col items-center">
+                        <span class="text-base mb-1">⚡</span>Cyberpunk
+                    </button>
+                    <button onclick="setTheme('pastel')" id="theme-pastel" class="theme-btn bg-slate-700 hover:bg-slate-600 p-2 rounded-lg text-xs font-medium text-purple-300 flex flex-col items-center">
+                        <span class="text-base mb-1">🥞</span>Pastel
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3 w-full max-w-xs">
+                <button onclick="startGame()" class="btn-primary w-full text-center">Play Game</button>
+                <button onclick="openInstructions()" class="btn-secondary w-full text-center">Instructions</button>
+            </div>
+            
+            <div id="menu-highscore" class="mt-5 text-xs text-slate-400">High Score: 0</div>
+        </div>
+
+        <!-- Pause Menu Screen -->
+        <div id="pause-screen" class="overlay-screen hidden">
+            <div class="text-4xl mb-2">⏸️</div>
+            <h2 class="text-2xl font-black text-amber-400 tracking-wider mb-4">GAME PAUSED</h2>
+            
+            <div class="flex flex-col gap-3 w-full max-w-xs mb-4">
+                <button onclick="resumeGame()" class="btn-primary w-full text-center">Resume</button>
+                <button onclick="restartGame()" class="btn-secondary w-full text-center">Restart Game</button>
+                <button onclick="openInstructionsFromPause()" class="btn-secondary w-full text-center">Instructions</button>
+                <button onclick="returnToMainMenu()" class="btn-secondary w-full text-center text-rose-300 border-rose-500/30 hover:bg-rose-500/20">Main Menu</button>
+            </div>
+
+            <!-- Theme Selector in Pause -->
+            <div class="w-full bg-slate-800/80 p-2.5 rounded-xl border border-slate-700">
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="setTheme('kitchen')" id="pause-theme-kitchen" class="theme-btn active bg-slate-700 hover:bg-slate-600 p-1.5 rounded-lg text-xs font-medium text-amber-200 flex flex-col items-center">
+                        <span>🏠</span>Kitchen
+                    </button>
+                    <button onclick="setTheme('neon')" id="pause-theme-neon" class="theme-btn bg-slate-700 hover:bg-slate-600 p-1.5 rounded-lg text-xs font-medium text-cyan-300 flex flex-col items-center">
+                        <span>⚡</span>Cyberpunk
+                    </button>
+                    <button onclick="setTheme('pastel')" id="pause-theme-pastel" class="theme-btn bg-slate-700 hover:bg-slate-600 p-1.5 rounded-lg text-xs font-medium text-purple-300 flex flex-col items-center">
+                        <span>🥞</span>Pastel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions Modal Overlay -->
+        <div id="instructions-modal" class="overlay-screen hidden">
+            <div class="text-4xl mb-3">📖</div>
+            <h2 class="text-2xl font-bold text-amber-400 mb-4">How to Play</h2>
+            <div class="bg-slate-800/90 p-4 rounded-xl border border-slate-700 text-sm text-slate-200 space-y-3 mb-6 w-full max-w-xs text-left">
+                <div class="flex items-start gap-3">
+                    <span class="text-xl">🕹️</span>
+                    <p><b>Movement:</b> Use <b>Arrow Keys</b>, <b>A/D</b>, or <b>Drag</b> on touchscreens to slide left and right.</p>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="text-xl">🐔</span>
+                    <p><b>Dodge Chickens:</b> Avoid falling chickens! Each collision costs 1 ❤️ life.</p>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="text-xl">🍞</span>
+                    <p><b>Collect Toast:</b> Grab golden toast for +5 bonus points!</p>
+                </div>
+            </div>
+            <button onclick="closeInstructions()" class="btn-primary w-full max-w-xs">Back</button>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="gameover-screen" class="overlay-screen hidden">
+            <div class="text-5xl mb-2">💥</div>
+            <h2 class="text-3xl font-black text-rose-500 tracking-wider mb-2">GAME OVER</h2>
+            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700 w-full max-w-xs text-center mb-6 space-y-1">
+                <p id="final-score" class="text-lg text-slate-200">Final Score: 0</p>
+                <p id="final-highscore" class="text-sm text-amber-400">High Score: 0</p>
+            </div>
+            <div class="flex flex-col gap-3 w-full max-w-xs">
+                <button onclick="startGame()" class="btn-primary w-full text-center">Play Again</button>
+                <button onclick="returnToMainMenu()" class="btn-secondary w-full text-center">Main Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Theme definitions
+        const themes = {
+            kitchen: {
+                name: 'Classic Kitchen',
+                bg: '#fdfbf7',
+                lineColor: '#ecf0f1',
+                hudColor: '#2c3e50',
+                containerBorder: '#f59e0b'
+            },
+            neon: {
+                name: 'Neon Cyberpunk',
+                bg: '#0a0f1d',
+                lineColor: '#1e293b',
+                hudColor: '#00fff5',
+                containerBorder: '#00fff5'
+            },
+            pastel: {
+                name: 'Pastel Breakfast',
+                bg: '#fdf4ff',
+                lineColor: '#f3e8ff',
+                hudColor: '#7e22ce',
+                containerBorder: '#c084fc'
+            }
+        };
+        let currentThemeKey = 'kitchen';
+
+        function setTheme(themeKey) {
+            currentThemeKey = themeKey;
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                if (btn.id.includes(themeKey)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            document.getElementById('game-container').style.borderColor = themes[themeKey].containerBorder;
+        }
+
+        // Game States
+        const STATE_START = 0;
+        const STATE_PLAYING = 1;
+        const STATE_PAUSED = 2;
+        const STATE_GAMEOVER = 3;
+        let gameState = STATE_START;
+
+        // Score & Lives
+        let score = 0;
+        let highScore = localStorage.getItem('eggHighScore') || 0;
+        let lives = 3;
+        let gameSpeed = 3;
+
+        // Player (Fried Egg)
+        const player = {
+            x: canvas.width / 2 - 25,
+            y: canvas.height - 70,
+            width: 50,
+            height: 50,
+            speed: 7
+        };
+
+        let obstacles = []; // Chickens
+        let collectibles = []; // Toast
+        let particles = [];
+        let spawnTimer = 0;
+        let cameFromPause = false;
+
+        // Input tracking
+        const keys = {};
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if (e.code === 'Escape') {
+                if (gameState === STATE_PLAYING) togglePause();
+                else if (gameState === STATE_PAUSED) resumeGame();
+            }
+            if ((e.code === 'Space' || e.code === 'Enter') && gameState === STATE_GAMEOVER) {
+                startGame();
+            }
+        });
+        window.addEventListener('keyup', e => {
+            keys[e.code] = false;
+        });
+
+        // Touch & Mouse drag support
+        let isDragging = false;
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchend', () => isDragging = false);
+
+        canvas.addEventListener('mousedown', e => {
+            if (gameState !== STATE_PLAYING) return;
+            isDragging = true;
+            updatePlayerPosition(e.clientX);
+        });
+        window.addEventListener('mousemove', e => {
+            if (isDragging && gameState === STATE_PLAYING) updatePlayerPosition(e.clientX);
+        });
+        window.addEventListener('mouseup', () => isDragging = false);
+
+        function handleTouchStart(e) {
+            if (gameState !== STATE_PLAYING) return;
+            isDragging = true;
+            handleTouchMove(e);
+        }
+
+        function handleTouchMove(e) {
+            if (!isDragging || gameState !== STATE_PLAYING) return;
+            const rect = canvas.getBoundingClientRect();
+            const touchX = e.touches[0].clientX - rect.left;
+            updatePlayerXDirect(touchX - player.width / 2);
+            e.preventDefault();
+        }
+
+        function updatePlayerPosition(clientX) {
+            const rect = canvas.getBoundingClientRect();
+            const canvasX = clientX - rect.left;
+            updatePlayerXDirect(canvasX - player.width / 2);
+        }
+
+        function updatePlayerXDirect(newX) {
+            player.x = newX;
+            if (player.x < 0) player.x = 0;
+            if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+        }
+
+        // Menu UI Handlers
+        function openInstructions() {
+            cameFromPause = false;
+            document.getElementById('instructions-modal').classList.remove('hidden');
+        }
+
+        function openInstructionsFromPause() {
+            cameFromPause = true;
+            document.getElementById('pause-screen').classList.add('hidden');
+            document.getElementById('instructions-modal').classList.remove('hidden');
+        }
+
+        function closeInstructions() {
+            document.getElementById('instructions-modal').classList.add('hidden');
+            if (cameFromPause) {
+                document.getElementById('pause-screen').classList.remove('hidden');
+            }
+        }
+
+        function togglePause() {
+            if (gameState === STATE_PLAYING) {
+                gameState = STATE_PAUSED;
+                document.getElementById('pause-screen').classList.remove('hidden');
+                document.getElementById('pause-btn').classList.add('hidden');
+            } else if (gameState === STATE_PAUSED) {
+                resumeGame();
+            }
+        }
+
+        function resumeGame() {
+            gameState = STATE_PLAYING;
+            document.getElementById('pause-screen').classList.add('hidden');
+            document.getElementById('pause-btn').classList.remove('hidden');
+        }
+
+        function restartGame() {
+            document.getElementById('pause-screen').classList.add('hidden');
+            startGame();
+        }
+
+        function returnToMainMenu() {
+            gameState = STATE_START;
+            document.getElementById('pause-screen').classList.add('hidden');
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('instructions-modal').classList.add('hidden');
+            document.getElementById('pause-btn').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+            document.getElementById('menu-highscore').innerText = `High Score: ${highScore}`;
+        }
+
+        function startGame() {
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('instructions-modal').classList.add('hidden');
+            document.getElementById('pause-screen').classList.add('hidden');
+            document.getElementById('pause-btn').classList.remove('hidden');
+            
+            score = 0;
+            lives = 3;
+            gameSpeed = 3;
+            obstacles = [];
+            collectibles = [];
+            particles = [];
+            player.x = canvas.width / 2 - 25;
+            spawnTimer = 0;
+            gameState = STATE_PLAYING;
+        }
+
+        function showGameOver() {
+            gameState = STATE_GAMEOVER;
+            document.getElementById('pause-btn').classList.add('hidden');
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('eggHighScore', highScore);
+            }
+            document.getElementById('final-score').innerText = `Final Score: ${score}`;
+            document.getElementById('final-highscore').innerText = `High Score: ${highScore}`;
+            document.getElementById('gameover-screen').classList.remove('hidden');
+        }
+
+        // Update high score display on load
+        document.getElementById('menu-highscore').innerText = `High Score: ${highScore}`;
+
+        function update() {
+            if (gameState !== STATE_PLAYING) return;
+
+            // Player keyboard movement
+            if (keys['ArrowLeft'] || keys['KeyA']) {
+                player.x -= player.speed;
+            }
+            if (keys['ArrowRight'] || keys['KeyD']) {
+                player.x += player.speed;
+            }
+
+            // Boundary check
+            if (player.x < 0) player.x = 0;
+            if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+
+            // Difficulty progression
+            gameSpeed = 3 + Math.floor(score / 15) * 0.5;
+
+            // Spawning entities
+            spawnTimer++;
+            if (spawnTimer > Math.max(20, 60 - Math.floor(score / 5))) {
+                spawnTimer = 0;
+                if (Math.random() < 0.75) {
+                    // Spawn Chicken
+                    obstacles.push({
+                        x: Math.random() * (canvas.width - 40),
+                        y: -50,
+                        width: 40,
+                        height: 40,
+                        speed: gameSpeed + Math.random() * 2
+                    });
+                } else {
+                    // Spawn Toast
+                    collectibles.push({
+                        x: Math.random() * (canvas.width - 35),
+                        y: -40,
+                        width: 35,
+                        height: 35,
+                        speed: gameSpeed * 0.8
+                    });
+                }
+            }
+
+            // Update obstacles (Chickens)
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].y += obstacles[i].speed;
+
+                // Collision detection with player
+                if (
+                    player.x < obstacles[i].x + obstacles[i].width - 10 &&
+                    player.x + player.width - 10 > obstacles[i].x &&
+                    player.y < obstacles[i].y + obstacles[i].height - 10 &&
+                    player.y + player.height - 10 > obstacles[i].y
+                ) {
+                    lives--;
+                    createParticles(player.x + player.width/2, player.y + player.height/2, '#ef4444');
+                    obstacles.splice(i, 1);
+                    if (lives <= 0) {
+                        showGameOver();
+                    }
+                    continue;
+                }
+
+                // Remove off-screen & add score
+                if (obstacles[i].y > canvas.height) {
+                    obstacles.splice(i, 1);
+                    score++;
+                }
+            }
+
+            // Update collectibles (Toast)
+            for (let i = collectibles.length - 1; i >= 0; i--) {
+                collectibles[i].y += collectibles[i].speed;
+
+                // Collision detection with player
+                if (
+                    player.x < collectibles[i].x + collectibles[i].width &&
+                    player.x + player.width > collectibles[i].x &&
+                    player.y < collectibles[i].y + collectibles[i].height &&
+                    player.y + player.height > collectibles[i].y
+                ) {
+                    score += 5;
+                    createParticles(collectibles[i].x + collectibles[i].width/2, collectibles[i].y + collectibles[i].height/2, '#f59e0b');
+                    collectibles.splice(i, 1);
+                    continue;
+                }
+
+                if (collectibles[i].y > canvas.height) {
+                    collectibles.splice(i, 1);
+                }
+            }
+
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].x += particles[i].vx;
+                particles[i].y += particles[i].vy;
+                particles[i].alpha -= 0.02;
+                if (particles[i].alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 10; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    radius: Math.random() * 4 + 2,
+                    color: color,
+                    alpha: 1
+                });
+            }
+        }
+
+        function draw() {
+            const theme = themes[currentThemeKey];
+
+            // Clear screen with theme background
+            ctx.fillStyle = theme.bg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw theme background pattern lines
+            ctx.strokeStyle = theme.lineColor;
+            ctx.lineWidth = 2;
+            for (let i = 0; i < canvas.height; i += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+
+            // If not playing or paused, don't draw gameplay entities
+            if (gameState !== STATE_PLAYING && gameState !== STATE_PAUSED) return;
+
+            // Draw Chickens (🐔)
+            ctx.font = '36px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            for (let obs of obstacles) {
+                ctx.fillText('🐔', obs.x + obs.width / 2, obs.y + obs.height / 2);
+            }
+
+            // Draw Toast (🍞)
+            for (let col of collectibles) {
+                ctx.fillText('🍞', col.x + col.width / 2, col.y + col.height / 2);
+            }
+
+            // Draw Player (Fried Egg 🍳)
+            ctx.fillText('🍳', player.x + player.width / 2, player.y + player.height / 2);
+
+            // Draw Particles
+            for (let p of particles) {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Draw HUD (Score & Lives)
+            ctx.fillStyle = theme.hudColor;
+            ctx.font = 'bold 16px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Score: ${score}`, 20, 30);
+            ctx.textAlign = 'right';
+            ctx.fillText(`Lives: ${'❤️'.repeat(Math.max(0, lives))}`, canvas.width - 20, 30);
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the animation loop on load
+        window.onload = function() {
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
+Bazzarn Games
