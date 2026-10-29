@@ -1,13 +1,45 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Egg-scape: Fried Egg vs. Chickens</title>
-    <!-- Tailwind CSS for modern UI styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Browser Address Bar Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍳</text></svg>">
     <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #2c3e50, #34495e);
+            --container-bg: #fff;
+            --container-border: #f1c40f;
+            --text-color: #fff;
+            --primary-color: #f39c12;
+            --hud-text: #2c3e50;
+            --canvas-bg: #fdfbf7;
+            --grid-color: #ecf0f1;
+        }
+
+        [data-theme="cyberpunk"] {
+            --bg-gradient: linear-gradient(135deg, #0f051d, #1a0b2e);
+            --container-bg: #120924;
+            --container-border: #00ffff;
+            --text-color: #ff007f;
+            --primary-color: #00ffff;
+            --hud-text: #00ffff;
+            --canvas-bg: #0b0314;
+            --grid-color: #2a1145;
+        }
+
+        [data-theme="pastel"] {
+            --bg-gradient: linear-gradient(135deg, #ff9a9e, #fad0c4);
+            --container-bg: #fff5f5;
+            --container-border: #ffb7b2;
+            --text-color: #594157;
+            --primary-color: #ff6f61;
+            --hud-text: #594157;
+            --canvas-bg: #fff9f9;
+            --grid-color: #ffe3e3;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -15,248 +47,279 @@
             user-select: none;
             -webkit-user-select: none;
         }
+
         body {
-            background: linear-gradient(135deg, #1e293b, #0f172a);
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg-gradient);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            height: 100dvh;
-            overflow: hidden;
-            color: #fff;
-            padding-bottom: env(safe-area-inset-bottom, 20px);
-            padding-top: env(safe-area-inset-top, 20px);
+            justify-content: space-between;
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow-x: hidden;
+            overflow-y: auto;
+            color: var(--text-color);
+            padding: env(safe-area-inset-top, 15px) env(safe-area-inset-right, 15px) calc(env(safe-area-inset-bottom, 15px) + 20px) env(safe-area-inset-left, 15px);
         }
+
+        header {
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            color: var(--primary-color);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
+            margin-bottom: 2px;
+        }
+
         #game-container {
             position: relative;
-            width: 100%;
-            max-width: 400px;
-            height: 100%;
-            max-height: 640px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            border-radius: 12px;
             overflow: hidden;
-            background: #fdfbf7;
-            border: 4px solid #f59e0b;
+            background: var(--container-bg);
+            border: 4px solid var(--container-border);
+            width: 400px;
+            max-width: 100%;
+            height: 600px;
+            max-height: 70vh;
         }
+
         canvas {
             display: block;
+            background: var(--canvas-bg);
             width: 100%;
             height: 100%;
         }
-        .overlay-screen {
+
+        /* UI Overlays */
+        .overlay {
             position: absolute;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.94);
-            backdrop-filter: blur(8px);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.82);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 24px;
-            z-index: 20;
-            transition: opacity 0.3s ease;
+            padding: 20px;
+            z-index: 10;
+            text-align: center;
+            transition: opacity 0.2s ease;
         }
-        .overlay-screen.hidden {
-            opacity: 0;
-            pointer-events: none;
+
+        .overlay.hidden {
             display: none;
         }
-        .btn-primary {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: white;
-            font-weight: bold;
-            padding: 12px 28px;
-            border-radius: 9999px;
-            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
-            transition: all 0.2s ease;
-            cursor: pointer;
-            border: none;
-            font-size: 1.1rem;
+
+        .overlay h2 {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            text-shadow: 0 2px 10px rgba(241, 196, 15, 0.4);
         }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6);
-        }
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #e2e8f0;
-            font-weight: 600;
-            padding: 10px 24px;
-            border-radius: 9999px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.2s ease;
-            cursor: pointer;
+
+        .overlay p {
             font-size: 1rem;
+            color: #ecf0f1;
+            margin-bottom: 20px;
+            line-height: 1.4;
         }
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.2);
+
+        .btn {
+            background: var(--primary-color);
+            color: #2c3e50;
+            font-weight: bold;
+            font-size: 1.05rem;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 30px;
+            cursor: pointer;
+            margin: 8px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.1s, filter 0.1s;
+            width: 200px;
+        }
+
+        .btn:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn-secondary {
+            background: #7f8c8d;
             color: #fff;
         }
-        .theme-btn {
-            border: 2px solid transparent;
-            transition: all 0.2s ease;
+
+        /* Theme Selector Buttons */
+        .theme-select-container {
+            display: flex;
+            gap: 8px;
+            margin: 10px 0 20px 0;
+            flex-wrap: wrap;
+            justify-content: center;
         }
+
+        .theme-btn {
+            background: #34495e;
+            color: #fff;
+            border: 2px solid #7f8c8d;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
         .theme-btn.active {
-            border-color: #f59e0b;
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        /* In-Game HUD overlay elements */
+        .hud-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .hud-item {
+            font-weight: bold;
+            font-size: 1rem;
+            color: var(--hud-text);
+            text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+            pointer-events: auto;
+        }
+
+        .menu-btn-hud {
+            pointer-events: auto;
+            background: rgba(44, 62, 80, 0.85);
+            color: #fff;
+            border: 2px solid var(--primary-color);
+            padding: 5px 14px;
+            font-size: 0.85rem;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+
+        .menu-btn-hud:hover {
             transform: scale(1.05);
-            box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+        }
+
+        .controls-hint {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.7);
+            margin-top: 8px;
+            text-align: center;
         }
     </style>
 </head>
-<body>
+<body data-theme="classic">
+
+    <header>
+        <h1>🍳 Egg-scape 🐔</h1>
+    </header>
 
     <div id="game-container">
-        <!-- In-game Pause/Menu HUD Button -->
-        <button id="pause-btn" onclick="togglePause()" class="absolute top-3 left-1/2 -translate-x-1/2 bg-slate-900/70 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl border border-slate-700 shadow-lg z-10 hidden flex items-center justify-center text-xs font-bold gap-1 shadow-md">⚙️ Menu</button>
-
-        <!-- Canvas for Game Rendering -->
+        <!-- Canvas -->
         <canvas id="gameCanvas" width="400" height="600"></canvas>
 
-        <!-- Start Menu / Splash Screen -->
-        <div id="menu-screen" class="overlay-screen">
-            <div class="text-5xl mb-2 animate-bounce">🍳</div>
-            <h1 class="text-3xl font-black text-amber-400 tracking-wider mb-1 text-center">EGG-SCAPE</h1>
-            <p class="text-slate-300 text-sm mb-5 text-center">Fried Egg vs. Chickens</p>
-
-            <!-- Theme Selector -->
-            <div class="w-full mb-5 bg-slate-800/80 p-3 rounded-xl border border-slate-700">
-                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 text-center">Choose Theme</label>
-                <div class="grid grid-cols-3 gap-2">
-                    <button onclick="setTheme('kitchen')" id="theme-kitchen" class="theme-btn active bg-slate-700 hover:bg-slate-600 p-2 rounded-lg text-xs font-medium text-amber-200 flex flex-col items-center">
-                        <span class="text-base mb-1">🏠</span>Kitchen
-                    </button>
-                    <button onclick="setTheme('neon')" id="theme-neon" class="theme-btn bg-slate-700 hover:bg-slate-600 p-2 rounded-lg text-xs font-medium text-cyan-300 flex flex-col items-center">
-                        <span class="text-base mb-1">⚡</span>Cyberpunk
-                    </button>
-                    <button onclick="setTheme('pastel')" id="theme-pastel" class="theme-btn bg-slate-700 hover:bg-slate-600 p-2 rounded-lg text-xs font-medium text-purple-300 flex flex-col items-center">
-                        <span class="text-base mb-1">🥞</span>Pastel
-                    </button>
-                </div>
-            </div>
-
-            <div class="flex flex-col gap-3 w-full max-w-xs">
-                <button onclick="startGame()" class="btn-primary w-full text-center">Play Game</button>
-                <button onclick="openInstructions()" class="btn-secondary w-full text-center">Instructions</button>
-            </div>
-            
-            <div id="menu-highscore" class="mt-5 text-xs text-slate-400">High Score: 0</div>
+        <!-- In-Game HUD Bar -->
+        <div id="hudBar" class="hud-bar hidden">
+            <div id="hudScore" class="hud-item">Score: 0</div>
+            <button id="inGameMenuBtn" class="menu-btn-hud">Menu</button>
+            <div id="hudLives" class="hud-item">❤️ 3</div>
         </div>
 
-        <!-- Pause Menu Screen -->
-        <div id="pause-screen" class="overlay-screen hidden">
-            <div class="text-4xl mb-2">⏸️</div>
-            <h2 class="text-2xl font-black text-amber-400 tracking-wider mb-4">GAME PAUSED</h2>
-            
-            <div class="flex flex-col gap-3 w-full max-w-xs mb-4">
-                <button onclick="resumeGame()" class="btn-primary w-full text-center">Resume</button>
-                <button onclick="restartGame()" class="btn-secondary w-full text-center">Restart Game</button>
-                <button onclick="openInstructionsFromPause()" class="btn-secondary w-full text-center">Instructions</button>
-                <button onclick="returnToMainMenu()" class="btn-secondary w-full text-center text-rose-300 border-rose-500/30 hover:bg-rose-500/20">Main Menu</button>
-            </div>
-
-            <!-- Theme Selector in Pause -->
-            <div class="w-full bg-slate-800/80 p-2.5 rounded-xl border border-slate-700">
-                <div class="grid grid-cols-3 gap-2">
-                    <button onclick="setTheme('kitchen')" id="pause-theme-kitchen" class="theme-btn active bg-slate-700 hover:bg-slate-600 p-1.5 rounded-lg text-xs font-medium text-amber-200 flex flex-col items-center">
-                        <span>🏠</span>Kitchen
-                    </button>
-                    <button onclick="setTheme('neon')" id="pause-theme-neon" class="theme-btn bg-slate-700 hover:bg-slate-600 p-1.5 rounded-lg text-xs font-medium text-cyan-300 flex flex-col items-center">
-                        <span>⚡</span>Cyberpunk
-                    </button>
-                    <button onclick="setTheme('pastel')" id="pause-theme-pastel" class="theme-btn bg-slate-700 hover:bg-slate-600 p-1.5 rounded-lg text-xs font-medium text-purple-300 flex flex-col items-center">
-                        <span>🥞</span>Pastel
-                    </button>
+        <!-- Splash / Main Menu Screen -->
+        <div id="splashScreen" class="overlay">
+            <h2>EGG-SCAPE</h2>
+            <p>Can a fried egg survive the chicken coop?</p>
+            <button class="btn" id="startBtn">Play Game</button>
+            <button class="btn btn-secondary" id="instructionsBtn">Instructions</button>
+            <div style="margin-top: 15px;">
+                <p style="font-size: 0.85rem; margin-bottom: 5px; color: #bbb;">Select Theme:</p>
+                <div class="theme-select-container">
+                    <button class="theme-btn active" data-theme="classic">Classic</button>
+                    <button class="theme-btn" data-theme="cyberpunk">Cyberpunk</button>
+                    <button class="theme-btn" data-theme="pastel">Pastel</button>
                 </div>
             </div>
+            <p id="highScoreSplash" style="font-size: 0.85rem; margin-top: 5px; color: #f1c40f;">High Score: 0</p>
         </div>
 
-        <!-- Instructions Modal Overlay -->
-        <div id="instructions-modal" class="overlay-screen hidden">
-            <div class="text-4xl mb-3">📖</div>
-            <h2 class="text-2xl font-bold text-amber-400 mb-4">How to Play</h2>
-            <div class="bg-slate-800/90 p-4 rounded-xl border border-slate-700 text-sm text-slate-200 space-y-3 mb-6 w-full max-w-xs text-left">
-                <div class="flex items-start gap-3">
-                    <span class="text-xl">🕹️</span>
-                    <p><b>Movement:</b> Use <b>Arrow Keys</b>, <b>A/D</b>, or <b>Drag</b> on touchscreens to slide left and right.</p>
-                </div>
-                <div class="flex items-start gap-3">
-                    <span class="text-xl">🐔</span>
-                    <p><b>Dodge Chickens:</b> Avoid falling chickens! Each collision costs 1 ❤️ life.</p>
-                </div>
-                <div class="flex items-start gap-3">
-                    <span class="text-xl">🍞</span>
-                    <p><b>Collect Toast:</b> Grab golden toast for +5 bonus points!</p>
-                </div>
-            </div>
-            <button onclick="closeInstructions()" class="btn-primary w-full max-w-xs">Back</button>
+        <!-- Instructions Modal / Screen -->
+        <div id="instructionsScreen" class="overlay hidden">
+            <h2>How to Play</h2>
+            <p style="text-align: left; max-width: 280px; margin: 0 auto 20px auto;">
+                🍳 <b>Move:</b> Use <b>Left/Right Arrows</b>, <b>A/D keys</b>, or drag on touchscreens.<br><br>
+                🐔 <b>Avoid:</b> Dodge falling chickens! Hitting one costs a life.<br><br>
+                🍞 <b>Collect:</b> Grab golden toast for +5 bonus points!<br><br>
+                ⚡ <b>Progress:</b> Game speeds up as your score climbs!
+            </p>
+            <button class="btn" id="backToSplashBtn">Back</button>
         </div>
 
-        <!-- Game Over Overlay -->
-        <div id="gameover-screen" class="overlay-screen hidden">
-            <div class="text-5xl mb-2">💥</div>
-            <h2 class="text-3xl font-black text-rose-500 tracking-wider mb-2">GAME OVER</h2>
-            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700 w-full max-w-xs text-center mb-6 space-y-1">
-                <p id="final-score" class="text-lg text-slate-200">Final Score: 0</p>
-                <p id="final-highscore" class="text-sm text-amber-400">High Score: 0</p>
+        <!-- Pause / In-Game Menu Modal -->
+        <div id="pauseScreen" class="overlay hidden">
+            <h2>Game Menu</h2>
+            <button class="btn" id="resumeBtn">Resume</button>
+            <button class="btn btn-secondary" id="restartBtn">Restart</button>
+            <div style="margin: 15px 0;">
+                <p style="font-size: 0.85rem; margin-bottom: 5px; color: #bbb;">Select Theme:</p>
+                <div class="theme-select-container">
+                    <button class="theme-btn active" data-theme="classic">Classic</button>
+                    <button class="theme-btn" data-theme="cyberpunk">Cyberpunk</button>
+                    <button class="theme-btn" data-theme="pastel">Pastel</button>
+                </div>
             </div>
-            <div class="flex flex-col gap-3 w-full max-w-xs">
-                <button onclick="startGame()" class="btn-primary w-full text-center">Play Again</button>
-                <button onclick="returnToMainMenu()" class="btn-secondary w-full text-center">Main Menu</button>
-            </div>
+            <button class="btn btn-secondary" id="quitBtn" style="background: #c0392b; color: #fff;">Quit to Title</button>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="gameOverScreen" class="overlay hidden">
+            <h2>GAME OVER</h2>
+            <p id="finalScoreText" style="font-size: 1.1rem; margin-bottom: 5px;">Final Score: 0</p>
+            <p id="highScoreText" style="font-size: 0.95rem; color: #f1c40f; margin-bottom: 20px;">High Score: 0</p>
+            <button class="btn" id="restartGameBtn">Play Again</button>
+            <button class="btn btn-secondary" id="mainMenuBtn" style="margin-top: 10px;">Main Menu</button>
         </div>
     </div>
+
+    <div class="controls-hint">Use Arrow keys / A & D or Swipe to move</div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Theme definitions
-        const themes = {
-            kitchen: {
-                name: 'Classic Kitchen',
-                bg: '#fdfbf7',
-                lineColor: '#ecf0f1',
-                hudColor: '#2c3e50',
-                containerBorder: '#f59e0b'
-            },
-            neon: {
-                name: 'Neon Cyberpunk',
-                bg: '#0a0f1d',
-                lineColor: '#1e293b',
-                hudColor: '#00fff5',
-                containerBorder: '#00fff5'
-            },
-            pastel: {
-                name: 'Pastel Breakfast',
-                bg: '#fdf4ff',
-                lineColor: '#f3e8ff',
-                hudColor: '#7e22ce',
-                containerBorder: '#c084fc'
-            }
-        };
-        let currentThemeKey = 'kitchen';
-
-        function setTheme(themeKey) {
-            currentThemeKey = themeKey;
-            document.querySelectorAll('.theme-btn').forEach(btn => {
-                if (btn.id.includes(themeKey)) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
-            document.getElementById('game-container').style.borderColor = themes[themeKey].containerBorder;
-        }
-
         // Game States
-        const STATE_START = 0;
+        const STATE_SPLASH = 0;
         const STATE_PLAYING = 1;
         const STATE_PAUSED = 2;
         const STATE_GAMEOVER = 3;
-        let gameState = STATE_START;
+        let gameState = STATE_SPLASH;
 
         // Score & Lives
         let score = 0;
@@ -273,127 +336,120 @@
             speed: 7
         };
 
+        // Entities arrays
         let obstacles = []; // Chickens
         let collectibles = []; // Toast
         let particles = [];
-        let spawnTimer = 0;
-        let cameFromPause = false;
+
+        // DOM Elements
+        const splashScreen = document.getElementById('splashScreen');
+        const instructionsScreen = document.getElementById('instructionsScreen');
+        const pauseScreen = document.getElementById('pauseScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const hudBar = document.getElementById('hudBar');
+        const hudScore = document.getElementById('hudScore');
+        const hudLives = document.getElementById('hudLives');
+        const finalScoreText = document.getElementById('finalScoreText');
+        const highScoreText = document.getElementById('highScoreText');
+        const highScoreSplash = document.getElementById('highScoreSplash');
+
+        highScoreSplash.textContent = `High Score: ${highScore}`;
+
+        // Theme switching logic
+        function setTheme(themeName) {
+            document.body.setAttribute('data-theme', themeName);
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                if (btn.getAttribute('data-theme') === themeName) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setTheme(btn.getAttribute('data-theme'));
+            });
+        });
+
+        // UI Button Events
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('instructionsBtn').addEventListener('click', () => {
+            splashScreen.classList.add('hidden');
+            instructionsScreen.classList.remove('hidden');
+        });
+        document.getElementById('backToSplashBtn').addEventListener('click', () => {
+            instructionsScreen.classList.add('hidden');
+            splashScreen.classList.remove('hidden');
+        });
+        document.getElementById('inGameMenuBtn').addEventListener('click', pauseGame);
+        document.getElementById('resumeBtn').addEventListener('click', resumeGame);
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            pauseScreen.classList.add('hidden');
+            startGame();
+        });
+        document.getElementById('quitBtn').addEventListener('click', () => {
+            pauseScreen.classList.add('hidden');
+            gameState = STATE_SPLASH;
+            hudBar.classList.add('hidden');
+            splashScreen.classList.remove('hidden');
+            highScoreSplash.textContent = `High Score: ${highScore}`;
+        });
+        document.getElementById('restartGameBtn').addEventListener('click', startGame);
+        document.getElementById('mainMenuBtn').addEventListener('click', () => {
+            gameOverScreen.classList.add('hidden');
+            gameState = STATE_SPLASH;
+            splashScreen.classList.remove('hidden');
+            highScoreSplash.textContent = `High Score: ${highScore}`;
+        });
 
         // Input tracking
         const keys = {};
         window.addEventListener('keydown', e => {
             keys[e.code] = true;
-            if (e.code === 'Escape') {
-                if (gameState === STATE_PLAYING) togglePause();
-                else if (gameState === STATE_PAUSED) resumeGame();
+            if (e.code === 'Space' || e.code === 'Enter') {
+                if (gameState === STATE_SPLASH) {
+                    startGame();
+                } else if (gameState === STATE_GAMEOVER) {
+                    startGame();
+                }
             }
-            if ((e.code === 'Space' || e.code === 'Enter') && gameState === STATE_GAMEOVER) {
-                startGame();
+            if (e.code === 'Escape' || e.code === 'KeyP') {
+                if (gameState === STATE_PLAYING) {
+                    pauseGame();
+                } else if (gameState === STATE_PAUSED) {
+                    resumeGame();
+                }
             }
         });
         window.addEventListener('keyup', e => {
             keys[e.code] = false;
         });
 
-        // Touch & Mouse drag support
-        let isDragging = false;
-        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-        canvas.addEventListener('touchend', () => isDragging = false);
-
-        canvas.addEventListener('mousedown', e => {
+        // Touch support for mobile dragging
+        canvas.addEventListener('touchmove', e => {
             if (gameState !== STATE_PLAYING) return;
-            isDragging = true;
-            updatePlayerPosition(e.clientX);
-        });
-        window.addEventListener('mousemove', e => {
-            if (isDragging && gameState === STATE_PLAYING) updatePlayerPosition(e.clientX);
-        });
-        window.addEventListener('mouseup', () => isDragging = false);
-
-        function handleTouchStart(e) {
-            if (gameState !== STATE_PLAYING) return;
-            isDragging = true;
-            handleTouchMove(e);
-        }
-
-        function handleTouchMove(e) {
-            if (!isDragging || gameState !== STATE_PLAYING) return;
             const rect = canvas.getBoundingClientRect();
-            const touchX = e.touches[0].clientX - rect.left;
-            updatePlayerXDirect(touchX - player.width / 2);
-            e.preventDefault();
-        }
-
-        function updatePlayerPosition(clientX) {
-            const rect = canvas.getBoundingClientRect();
-            const canvasX = clientX - rect.left;
-            updatePlayerXDirect(canvasX - player.width / 2);
-        }
-
-        function updatePlayerXDirect(newX) {
-            player.x = newX;
+            const scaleX = canvas.width / rect.width;
+            const touchX = (e.touches[0].clientX - rect.left) * scaleX;
+            player.x = touchX - player.width / 2;
             if (player.x < 0) player.x = 0;
             if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
-        }
+            e.preventDefault();
+        }, { passive: false });
 
-        // Menu UI Handlers
-        function openInstructions() {
-            cameFromPause = false;
-            document.getElementById('instructions-modal').classList.remove('hidden');
-        }
-
-        function openInstructionsFromPause() {
-            cameFromPause = true;
-            document.getElementById('pause-screen').classList.add('hidden');
-            document.getElementById('instructions-modal').classList.remove('hidden');
-        }
-
-        function closeInstructions() {
-            document.getElementById('instructions-modal').classList.add('hidden');
-            if (cameFromPause) {
-                document.getElementById('pause-screen').classList.remove('hidden');
-            }
-        }
-
-        function togglePause() {
-            if (gameState === STATE_PLAYING) {
-                gameState = STATE_PAUSED;
-                document.getElementById('pause-screen').classList.remove('hidden');
-                document.getElementById('pause-btn').classList.add('hidden');
-            } else if (gameState === STATE_PAUSED) {
-                resumeGame();
-            }
-        }
-
-        function resumeGame() {
-            gameState = STATE_PLAYING;
-            document.getElementById('pause-screen').classList.add('hidden');
-            document.getElementById('pause-btn').classList.remove('hidden');
-        }
-
-        function restartGame() {
-            document.getElementById('pause-screen').classList.add('hidden');
-            startGame();
-        }
-
-        function returnToMainMenu() {
-            gameState = STATE_START;
-            document.getElementById('pause-screen').classList.add('hidden');
-            document.getElementById('gameover-screen').classList.add('hidden');
-            document.getElementById('instructions-modal').classList.add('hidden');
-            document.getElementById('pause-btn').classList.add('hidden');
-            document.getElementById('menu-screen').classList.remove('hidden');
-            document.getElementById('menu-highscore').innerText = `High Score: ${highScore}`;
-        }
+        canvas.addEventListener('mousemove', e => {
+            if (gameState !== STATE_PLAYING) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const mouseX = (e.clientX - rect.left) * scaleX;
+            player.x = mouseX - player.width / 2;
+            if (player.x < 0) player.x = 0;
+            if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+        });
 
         function startGame() {
-            document.getElementById('menu-screen').classList.add('hidden');
-            document.getElementById('gameover-screen').classList.add('hidden');
-            document.getElementById('instructions-modal').classList.add('hidden');
-            document.getElementById('pause-screen').classList.add('hidden');
-            document.getElementById('pause-btn').classList.remove('hidden');
-            
             score = 0;
             lives = 3;
             gameSpeed = 3;
@@ -401,29 +457,41 @@
             collectibles = [];
             particles = [];
             player.x = canvas.width / 2 - 25;
-            spawnTimer = 0;
+            
+            splashScreen.classList.add('hidden');
+            instructionsScreen.classList.add('hidden');
+            pauseScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            hudBar.classList.remove('hidden');
+            
+            updateHUD();
             gameState = STATE_PLAYING;
         }
 
-        function showGameOver() {
-            gameState = STATE_GAMEOVER;
-            document.getElementById('pause-btn').classList.add('hidden');
-            if (score > highScore) {
-                highScore = score;
-                localStorage.setItem('eggHighScore', highScore);
-            }
-            document.getElementById('final-score').innerText = `Final Score: ${score}`;
-            document.getElementById('final-highscore').innerText = `High Score: ${highScore}`;
-            document.getElementById('gameover-screen').classList.remove('hidden');
+        function pauseGame() {
+            if (gameState !== STATE_PLAYING) return;
+            gameState = STATE_PAUSED;
+            pauseScreen.classList.remove('hidden');
         }
 
-        // Update high score display on load
-        document.getElementById('menu-highscore').innerText = `High Score: ${highScore}`;
+        function resumeGame() {
+            if (gameState !== STATE_PAUSED) return;
+            pauseScreen.classList.add('hidden');
+            gameState = STATE_PLAYING;
+        }
+
+        function updateHUD() {
+            hudScore.textContent = `Score: ${score}`;
+            hudLives.textContent = `${'❤️'.repeat(Math.max(0, lives))}`;
+        }
+
+        // Spawn timer
+        let spawnTimer = 0;
 
         function update() {
             if (gameState !== STATE_PLAYING) return;
 
-            // Player keyboard movement
+            // Player movement via keyboard
             if (keys['ArrowLeft'] || keys['KeyA']) {
                 player.x -= player.speed;
             }
@@ -475,10 +543,19 @@
                     player.y + player.height - 10 > obstacles[i].y
                 ) {
                     lives--;
-                    createParticles(player.x + player.width/2, player.y + player.height/2, '#ef4444');
+                    createParticles(player.x + player.width/2, player.y + player.height/2, '#e74c3c');
                     obstacles.splice(i, 1);
+                    updateHUD();
                     if (lives <= 0) {
-                        showGameOver();
+                        gameState = STATE_GAMEOVER;
+                        hudBar.classList.add('hidden');
+                        if (score > highScore) {
+                            highScore = score;
+                            localStorage.setItem('eggHighScore', highScore);
+                        }
+                        finalScoreText.textContent = `Final Score: ${score}`;
+                        highScoreText.textContent = `High Score: ${highScore}`;
+                        gameOverScreen.classList.remove('hidden');
                     }
                     continue;
                 }
@@ -487,6 +564,7 @@
                 if (obstacles[i].y > canvas.height) {
                     obstacles.splice(i, 1);
                     score++;
+                    updateHUD();
                 }
             }
 
@@ -494,7 +572,6 @@
             for (let i = collectibles.length - 1; i >= 0; i--) {
                 collectibles[i].y += collectibles[i].speed;
 
-                // Collision detection with player
                 if (
                     player.x < collectibles[i].x + collectibles[i].width &&
                     player.x + player.width > collectibles[i].x &&
@@ -502,7 +579,8 @@
                     player.y + player.height > collectibles[i].y
                 ) {
                     score += 5;
-                    createParticles(collectibles[i].x + collectibles[i].width/2, collectibles[i].y + collectibles[i].height/2, '#f59e0b');
+                    updateHUD();
+                    createParticles(collectibles[i].x, collectibles[i].y, '#f1c40f');
                     collectibles.splice(i, 1);
                     continue;
                 }
@@ -538,14 +616,11 @@
         }
 
         function draw() {
-            const theme = themes[currentThemeKey];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Clear screen with theme background
-            ctx.fillStyle = theme.bg;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Draw theme background pattern lines
-            ctx.strokeStyle = theme.lineColor;
+            // Draw Background Grid Lines
+            const currentTheme = document.body.getAttribute('data-theme');
+            ctx.strokeStyle = currentTheme === 'cyberpunk' ? '#2a1145' : (currentTheme === 'pastel' ? '#ffe3e3' : '#ecf0f1');
             ctx.lineWidth = 2;
             for (let i = 0; i < canvas.height; i += 40) {
                 ctx.beginPath();
@@ -554,13 +629,15 @@
                 ctx.stroke();
             }
 
-            // If not playing or paused, don't draw gameplay entities
-            if (gameState !== STATE_PLAYING && gameState !== STATE_PAUSED) return;
+            if (gameState === STATE_SPLASH) return;
 
-            // Draw Chickens (🐔)
-            ctx.font = '36px sans-serif';
+            // Draw Player (Fried Egg 🍳)
+            ctx.font = '40px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
+            ctx.fillText('🍳', player.x + player.width / 2, player.y + player.height / 2);
+
+            // Draw Chickens (🐔)
             for (let obs of obstacles) {
                 ctx.fillText('🐔', obs.x + obs.width / 2, obs.y + obs.height / 2);
             }
@@ -569,9 +646,6 @@
             for (let col of collectibles) {
                 ctx.fillText('🍞', col.x + col.width / 2, col.y + col.height / 2);
             }
-
-            // Draw Player (Fried Egg 🍳)
-            ctx.fillText('🍳', player.x + player.width / 2, player.y + player.height / 2);
 
             // Draw Particles
             for (let p of particles) {
@@ -583,14 +657,6 @@
                 ctx.fill();
                 ctx.restore();
             }
-
-            // Draw HUD (Score & Lives)
-            ctx.fillStyle = theme.hudColor;
-            ctx.font = 'bold 16px sans-serif';
-            ctx.textAlign = 'left';
-            ctx.fillText(`Score: ${score}`, 20, 30);
-            ctx.textAlign = 'right';
-            ctx.fillText(`Lives: ${'❤️'.repeat(Math.max(0, lives))}`, canvas.width - 20, 30);
         }
 
         function gameLoop() {
@@ -599,10 +665,8 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Start the animation loop on load
-        window.onload = function() {
-            gameLoop();
-        };
+        // Start the loop
+        gameLoop();
     </script>
 </body>
 </html>
